@@ -1429,6 +1429,100 @@ const bagl_element_t ui_verify_output_nanos[] = {
 unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter);
 
+const bagl_element_t ui_whitelist_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    //{{BAGL_ICON                           , 0x01,  21,   9,  14,  14, 0, 0, 0
+    //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_TRANSACTION_BADGE  }, NULL, 0, 0,
+    //0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Recepient address", //"Confirm xx",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "is not whitelisted", // output #1
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Add this address",  // Amount 
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "into whitelist?", // BTC 0.0001
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x03, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Address to whitelist",   // Address
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.fullAddress,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}};
+unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter);
+
 const bagl_element_t ui_finalize_nanos[] = {
     // type                               userid    x    y   w    h  str rad
     // fill      fg        bg      fid iid  txt   touchparams...       ]
@@ -1467,7 +1561,7 @@ const bagl_element_t ui_finalize_nanos[] = {
     {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
      "Confirm",
-     0,
+     0, 
      0,
      0,
      NULL,
@@ -1771,6 +1865,22 @@ unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
         io_seproxyhal_touch_verify_ok(NULL);
+        break;
+    }
+    return 0;
+}
+
+void display_verify_output();
+
+unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
+                                       unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        display_verify_output();
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        display_verify_output();
         break;
     }
     return 0;
@@ -2357,6 +2467,18 @@ unsigned int btchip_bagl_confirm_full_output() {
     return 1;
 }
 
+void display_whitelist_ui() {
+    ux_step = 0;
+    ux_step_count = 3;
+    UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
+}
+
+void display_verify_output() {
+    ux_step = 0;
+    ux_step_count = 3;
+    UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
+}
+
 unsigned int btchip_bagl_confirm_single_output() {
     // TODO : remove when supporting multi output
 #if defined(TARGET_BLUE)
@@ -2374,13 +2496,16 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-#if defined(TARGET_BLUE)
-    ui_transaction_output_blue_init();
-#elif defined(TARGET_NANOS)
-    ux_step = 0;
-    ux_step_count = 3;
-    UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
-#endif // #if TARGET_ID
+    display_whitelist_ui();
+// todo
+// #if defined(TARGET_BLUE)
+//     ui_transaction_output_blue_init();
+// #elif defined(TARGET_NANOS)
+//     ux_step = 0;
+//     ux_step_count = 3;
+//     //UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
+//     UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
+// #endif // #if TARGET_ID
     return 1;
 }
 
