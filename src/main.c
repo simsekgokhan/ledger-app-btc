@@ -45,6 +45,13 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 #define COLOR_APP COIN_COLOR_HDR      // bitcoin 0xFCB653
 #define COLOR_APP_LIGHT COIN_COLOR_DB // bitcoin 0xFEDBA9
 
+typedef struct internalStorage_t {
+  unsigned char useWhitelist;
+} internalStorage_t;
+
+WIDE internalStorage_t N_storage_real;
+#define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
+
 #if defined(TARGET_BLUE)
 #include "qrcodegen.h"
 
@@ -246,7 +253,37 @@ unsigned int ui_idle_blue_button(unsigned int button_mask,
 
 #if defined(TARGET_NANOS)
 
+volatile uint8_t useWhitelist;
+
 const ux_menu_entry_t menu_main[];
+const ux_menu_entry_t menu_settings[];
+const ux_menu_entry_t menu_settings_whitelist[];
+
+// change the setting
+void menu_settings_whitelist_change(unsigned int enabled) {
+  useWhitelist = enabled;
+  nvm_write(&N_storage.useWhitelist, (void*)&useWhitelist, sizeof(uint8_t));
+  // go back to the menu entry
+  UX_MENU_DISPLAY(0, menu_settings, NULL);
+}
+
+// show the currently activated entry
+void menu_settings_whitelist_init(unsigned int ignored) {
+  UNUSED(ignored);
+  UX_MENU_DISPLAY(N_storage.useWhitelist?1:0, menu_settings_whitelist, NULL);
+}
+
+const ux_menu_entry_t menu_settings_whitelist[] = {
+  {NULL, menu_settings_whitelist_change, 0, NULL, "No", NULL, 0, 0},
+  {NULL, menu_settings_whitelist_change, 1, NULL, "Yes", NULL, 0, 0},
+  UX_MENU_END
+};
+
+const ux_menu_entry_t menu_settings[] = {
+  {NULL, menu_settings_whitelist_init, 0, NULL, "Use whitelist", NULL, 0, 0},
+  {menu_main, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},
+  UX_MENU_END
+};
 
 const ux_menu_entry_t menu_about[] = {
     {NULL, NULL, 0, NULL, "Version", APPVERSION, 0, 0},
@@ -257,6 +294,7 @@ const ux_menu_entry_t menu_main[] = {
     //{NULL, NULL, 0, &NAME3(C_nanos_badge_, COINID, ), "Use wallet to", "view
     // accounts", 33, 12},
     {NULL, NULL, 0, NULL, "Use wallet to", "view accounts", 0, 0},
+    {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
     {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
     {NULL, os_sched_exit, 0, &C_nanos_icon_dashboard, "Quit app", NULL, 50, 29},
     UX_MENU_END};
