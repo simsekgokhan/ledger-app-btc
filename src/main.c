@@ -46,7 +46,8 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 #define COLOR_APP_LIGHT COIN_COLOR_DB // bitcoin 0xFEDBA9
 
 typedef struct internalStorage_t {
-  unsigned char useWhitelist;
+    unsigned char useWhitelist;
+    char addr[3][43];
 } internalStorage_t;
 
 WIDE internalStorage_t N_storage_real;
@@ -1910,6 +1911,26 @@ unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
 
 void display_verify_output();
 
+bool addr_in_whitelist() {
+    const int whitelistSize = sizeof(N_storage.addr)/sizeof(N_storage.addr[0]);
+    for (int i = 0; i < whitelistSize; i++) {        
+        if(0 == strcmp(N_storage.addr[i], vars.tmp.fullAddress)) 
+            return true;
+    }
+    return false;
+}
+
+// todo: return false if no space left
+void save_addr_into_whitelist(){
+    const int whitelistSize = sizeof(N_storage.addr)/sizeof(N_storage.addr[0]);
+    for (int i = 0; i < whitelistSize; i++) {
+        if(0 == N_storage.addr[i][0]) {
+            nvm_write(&N_storage.addr[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));        
+            break;
+        }
+    }
+}
+
 unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
                                        unsigned int button_mask_counter) {
     switch (button_mask) {
@@ -1918,6 +1939,8 @@ unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        if(!addr_in_whitelist())
+            save_addr_into_whitelist();
         display_verify_output();
         break;
     }
@@ -2534,7 +2557,12 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    display_whitelist_ui();
+    if(addr_in_whitelist()) {
+        display_verify_output();
+    }
+    else {
+        display_whitelist_ui();
+    }
 // todo
 // #if defined(TARGET_BLUE)
 //     ui_transaction_output_blue_init();
