@@ -46,9 +46,12 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 #define COLOR_APP_LIGHT COIN_COLOR_DB // bitcoin 0xFEDBA9
 
 typedef struct internalStorage_t {
-    unsigned char useWhitelist;
-    char addr[3][43];
+    unsigned char use_whitelist;
+    char whitelist[10][43]; // Whitelist of Bitcoing recepient addresses in storage
 } internalStorage_t;
+
+// Whitelist of Bitcoing recepient addresses to use at runtime
+char whitelistTemp[10][43];
 
 WIDE internalStorage_t N_storage_real;
 #define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
@@ -129,6 +132,7 @@ unsigned int io_seproxyhal_touch_display_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_display_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
 void ui_idle(void);
+void init_whitelist();
 
 ux_state_t ux;
 
@@ -254,16 +258,31 @@ unsigned int ui_idle_blue_button(unsigned int button_mask,
 
 #if defined(TARGET_NANOS)
 
-volatile uint8_t useWhitelist;
+volatile uint8_t use_whitelist;
+volatile uint8_t index_wl;  // index for whitelist settings
 
 const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_settings[];
 const ux_menu_entry_t menu_settings_whitelist[];
+const ux_menu_entry_t menu_settings_edit_whitelist[];
 
 // change the setting
 void menu_settings_whitelist_change(unsigned int enabled) {
-  useWhitelist = enabled;
-  nvm_write(&N_storage.useWhitelist, (void*)&useWhitelist, sizeof(uint8_t));
+  use_whitelist = enabled;
+  nvm_write(&N_storage.use_whitelist, (void*)&use_whitelist, sizeof(uint8_t));
+  // go back to the menu entry
+  UX_MENU_DISPLAY(0, menu_settings, NULL);
+}
+
+void menu_settings_edit_whitelist_change(unsigned int index) {
+  index_wl = index;
+  // Change runtime whitelist
+  memset(whitelistTemp[index_wl], 0, sizeof(whitelistTemp[index_wl]));
+  strcpy(whitelistTemp[index_wl], " . <unused>");
+  whitelistTemp[index_wl][0] = index_wl + 49;
+  // Change whitelist in storage
+  const char unused[43] = "<unused>";  
+  nvm_write(&N_storage.whitelist[index_wl], (void*)&unused, sizeof(unused));
   // go back to the menu entry
   UX_MENU_DISPLAY(0, menu_settings, NULL);
 }
@@ -271,17 +290,40 @@ void menu_settings_whitelist_change(unsigned int enabled) {
 // show the currently activated entry
 void menu_settings_whitelist_init(unsigned int ignored) {
   UNUSED(ignored);
-  UX_MENU_DISPLAY(N_storage.useWhitelist?1:0, menu_settings_whitelist, NULL);
+  UX_MENU_DISPLAY(N_storage.use_whitelist?1:0, menu_settings_whitelist, NULL);
+}
+
+void menu_settings_edit_whitelist_init(unsigned int ignored) {
+  UNUSED(ignored);
+  UX_MENU_DISPLAY(0, menu_settings_edit_whitelist, NULL);
 }
 
 const ux_menu_entry_t menu_settings_whitelist[] = {
   {NULL, menu_settings_whitelist_change, 0, NULL, "No", NULL, 0, 0},
   {NULL, menu_settings_whitelist_change, 1, NULL, "Yes", NULL, 0, 0},
+  {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},    
+  UX_MENU_END
+};
+
+const ux_menu_entry_t menu_settings_edit_whitelist[] = {
+  {NULL, NULL, 0, NULL, "Use two buttons", "to delete entry", 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 0, NULL, whitelistTemp[0], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 1, NULL, whitelistTemp[1], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 2, NULL, whitelistTemp[2], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 3, NULL, whitelistTemp[3], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 4, NULL, whitelistTemp[4], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 5, NULL, whitelistTemp[5], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 6, NULL, whitelistTemp[6], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 7, NULL, whitelistTemp[7], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 8, NULL, whitelistTemp[8], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 9, NULL, whitelistTemp[9], NULL, 0, 0},
+  {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},  
   UX_MENU_END
 };
 
 const ux_menu_entry_t menu_settings[] = {
   {NULL, menu_settings_whitelist_init, 0, NULL, "Use whitelist", NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_init, 0, NULL, "Edit whitelist", NULL, 0, 0},
   {menu_main, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},
   UX_MENU_END
 };
@@ -1814,9 +1856,27 @@ void ui_idle(void) {
 
 #if defined(TARGET_BLUE)
     UX_DISPLAY(ui_idle_blue, ui_idle_blue_prepro);
-#elif defined(TARGET_NANOS)
+#elif defined(TARGET_NANOS)    
     UX_MENU_DISPLAY(0, menu_main, NULL);
 #endif // #if TARGET_ID
+}
+
+void init_whitelist() {
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    for (int i = 0; i < wl_size; i++) {
+        memset(whitelistTemp[i], 0, sizeof(whitelistTemp[i]));
+        const char unused[] = "<unused>";
+        snprintf(whitelistTemp[i], sizeof(whitelistTemp[i]), "%d", i+1);
+        strcat(whitelistTemp[i], ". ");
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], unused)) {
+            strcat(whitelistTemp[i], unused);
+        }
+        else {
+            strncat(whitelistTemp[i], N_storage.whitelist[i], 4);
+            strcat(whitelistTemp[i], "**");
+            strncat(whitelistTemp[i], N_storage.whitelist[i]+30, 4);            
+        }
+    }
 }
 
 #ifdef TARGET_BLUE
@@ -1911,10 +1971,10 @@ unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
 
 void display_verify_output();
 
-bool addr_in_whitelist() {
-    const int whitelistSize = sizeof(N_storage.addr)/sizeof(N_storage.addr[0]);
-    for (int i = 0; i < whitelistSize; i++) {        
-        if(0 == strcmp(N_storage.addr[i], vars.tmp.fullAddress)) 
+bool address_in_whitelist() {
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    for (int i = 0; i < wl_size; i++) {        
+        if(0 == strcmp(N_storage.whitelist[i], vars.tmp.fullAddress)) 
             return true;
     }
     return false;
@@ -1922,10 +1982,18 @@ bool addr_in_whitelist() {
 
 // todo: return false if no space left
 void save_addr_into_whitelist(){
-    const int whitelistSize = sizeof(N_storage.addr)/sizeof(N_storage.addr[0]);
-    for (int i = 0; i < whitelistSize; i++) {
-        if(0 == N_storage.addr[i][0]) {
-            nvm_write(&N_storage.addr[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));        
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    for (int i = 0; i < wl_size; i++) {
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], "<unused>")) {
+            // Change list in storage
+            nvm_write(&N_storage.whitelist[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));
+            // Change runtime list
+            memset(whitelistTemp[i], 0, sizeof(whitelistTemp[i]));
+            snprintf(whitelistTemp[i], sizeof(whitelistTemp[i]), "%d", i+1);
+            strcat(whitelistTemp[i], ". ");
+            strncat(whitelistTemp[i], N_storage.whitelist[i], 4);
+            strcat(whitelistTemp[i], "**");
+            strncat(whitelistTemp[i], N_storage.whitelist[i]+30, 4);                        
             break;
         }
     }
@@ -1939,7 +2007,7 @@ unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
-        if(!addr_in_whitelist())
+        if(!address_in_whitelist())
             save_addr_into_whitelist();
         display_verify_output();
         break;
@@ -2557,12 +2625,10 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    if(addr_in_whitelist()) {
+    if(address_in_whitelist()) 
         display_verify_output();
-    }
-    else {
+    else 
         display_whitelist_ui();
-    }
 // todo
 // #if defined(TARGET_BLUE)
 //     ui_transaction_output_blue_init();
@@ -2775,6 +2841,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
                 UX_SET_STATUS_BAR_COLOR(0xFFFFFF, G_coin_config->color_header);
 #endif // TARGET_ID
 
+                init_whitelist();
                 ui_idle();
 
                 app_main();
