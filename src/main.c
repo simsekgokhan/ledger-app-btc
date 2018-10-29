@@ -51,7 +51,7 @@ typedef struct internalStorage_t {
 } internalStorage_t;
 
 // Whitelist of Bitcoing recepient addresses to use at runtime
-char whitelistTemp[10][43];
+char whitelist_runtime[10][43]; // contains index, e.g. 1. 38ut**xgNG
 
 WIDE internalStorage_t N_storage_real;
 #define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
@@ -277,9 +277,9 @@ void menu_settings_whitelist_change(unsigned int enabled) {
 void menu_settings_edit_whitelist_change(unsigned int index) {
   index_wl = index;
   // Change runtime whitelist
-  memset(whitelistTemp[index_wl], 0, sizeof(whitelistTemp[index_wl]));
-  strcpy(whitelistTemp[index_wl], " . <unused>");
-  whitelistTemp[index_wl][0] = index_wl + 49;
+  memset(whitelist_runtime[index_wl], 0, sizeof(whitelist_runtime[index_wl]));
+  strcpy(whitelist_runtime[index_wl], " . <unused>");
+  whitelist_runtime[index_wl][0] = index_wl + 49;
   // Change whitelist in storage
   const char unused[43] = "<unused>";  
   nvm_write(&N_storage.whitelist[index_wl], (void*)&unused, sizeof(unused));
@@ -307,16 +307,16 @@ const ux_menu_entry_t menu_settings_whitelist[] = {
 
 const ux_menu_entry_t menu_settings_edit_whitelist[] = {
   {NULL, NULL, 0, NULL, "Use two buttons", "to delete entry", 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 0, NULL, whitelistTemp[0], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 1, NULL, whitelistTemp[1], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 2, NULL, whitelistTemp[2], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 3, NULL, whitelistTemp[3], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 4, NULL, whitelistTemp[4], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 5, NULL, whitelistTemp[5], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 6, NULL, whitelistTemp[6], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 7, NULL, whitelistTemp[7], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 8, NULL, whitelistTemp[8], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 9, NULL, whitelistTemp[9], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 0, NULL, whitelist_runtime[0], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 1, NULL, whitelist_runtime[1], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 2, NULL, whitelist_runtime[2], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 3, NULL, whitelist_runtime[3], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 4, NULL, whitelist_runtime[4], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 5, NULL, whitelist_runtime[5], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 6, NULL, whitelist_runtime[6], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 7, NULL, whitelist_runtime[7], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 8, NULL, whitelist_runtime[8], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_change, 9, NULL, whitelist_runtime[9], NULL, 0, 0},
   {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},  
   UX_MENU_END
 };
@@ -1547,7 +1547,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
     //0, NULL, NULL, NULL },
     {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Recepient address", //"Confirm xx",
+     "Recepient address",
      0,
      0,
      0,
@@ -1556,7 +1556,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
      NULL},
     {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "is not whitelisted", // output #1
+     "is not whitelisted",
      0,
      0,
      0,
@@ -1566,7 +1566,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
 
     {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Add this address",  // Amount 
+     "Add this address",
      0,
      0,
      0,
@@ -1575,7 +1575,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
      NULL},
     {{BAGL_LABELINE, 0x02, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "into whitelist?", // BTC 0.0001
+     "into whitelist?",
      0,
      0,
      0,
@@ -1585,7 +1585,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
 
     {{BAGL_LABELINE, 0x03, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
       BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
-     "Address to whitelist",   // Address
+     "Address to whitelist",
      0,
      0,
      0,
@@ -1864,17 +1864,17 @@ void ui_idle(void) {
 void init_whitelist() {
     const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
     for (int i = 0; i < wl_size; i++) {
-        memset(whitelistTemp[i], 0, sizeof(whitelistTemp[i]));
+        memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
         const char unused[] = "<unused>";
-        snprintf(whitelistTemp[i], sizeof(whitelistTemp[i]), "%d", i+1);
-        strcat(whitelistTemp[i], ". ");
+        snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
+        strcat(whitelist_runtime[i], ". ");
         if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], unused)) {
-            strcat(whitelistTemp[i], unused);
+            strcat(whitelist_runtime[i], unused);
         }
         else {
-            strncat(whitelistTemp[i], N_storage.whitelist[i], 4);
-            strcat(whitelistTemp[i], "**");
-            strncat(whitelistTemp[i], N_storage.whitelist[i]+30, 4);            
+            strncat(whitelist_runtime[i], N_storage.whitelist[i], 4);
+            strcat(whitelist_runtime[i], "**");
+            strncat(whitelist_runtime[i], N_storage.whitelist[i]+30, 4);            
         }
     }
 }
@@ -1988,12 +1988,12 @@ void save_addr_into_whitelist(){
             // Change list in storage
             nvm_write(&N_storage.whitelist[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));
             // Change runtime list
-            memset(whitelistTemp[i], 0, sizeof(whitelistTemp[i]));
-            snprintf(whitelistTemp[i], sizeof(whitelistTemp[i]), "%d", i+1);
-            strcat(whitelistTemp[i], ". ");
-            strncat(whitelistTemp[i], N_storage.whitelist[i], 4);
-            strcat(whitelistTemp[i], "**");
-            strncat(whitelistTemp[i], N_storage.whitelist[i]+30, 4);                        
+            memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
+            snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
+            strcat(whitelist_runtime[i], ". ");
+            strncat(whitelist_runtime[i], N_storage.whitelist[i], 4);
+            strcat(whitelist_runtime[i], "**");
+            strncat(whitelist_runtime[i], N_storage.whitelist[i]+30, 4);                        
             break;
         }
     }
