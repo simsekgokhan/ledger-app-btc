@@ -1604,6 +1604,100 @@ const bagl_element_t ui_whitelist_nanos[] = {
 unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
                                            unsigned int button_mask_counter);
 
+const bagl_element_t ui_whitelist_full_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    //{{BAGL_ICON                           , 0x01,  21,   9,  14,  14, 0, 0, 0
+    //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_TRANSACTION_BADGE  }, NULL, 0, 0,
+    //0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x01, 0, 19, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Whitelist is full",     
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x02, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Recepient address",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x02, 0, 26, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "is not whitelisted",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_LABELINE, 0x03, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Continue to",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x03, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "confirm dialog?",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}};
+unsigned int ui_whitelist_full_nanos_button(unsigned int button_mask,
+                                           unsigned int button_mask_counter);
+
 const bagl_element_t ui_finalize_nanos[] = {
     // type                               userid    x    y   w    h  str rad
     // fill      fg        bg      fid iid  txt   touchparams...       ]
@@ -1999,6 +2093,15 @@ void save_addr_into_whitelist(){
     }
 }
 
+bool is_whitelist_full() {
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    for (int i = 0; i < wl_size; i++) {        
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], "<unused>"))
+            return false;
+    }
+    return true;
+}
+
 unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
                                        unsigned int button_mask_counter) {
     switch (button_mask) {
@@ -2009,6 +2112,20 @@ unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
         if(!address_in_whitelist())
             save_addr_into_whitelist();
+        display_verify_output();
+        break;
+    }
+    return 0;
+}
+
+unsigned int ui_whitelist_full_nanos_button(unsigned int button_mask,
+                                               unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        io_seproxyhal_touch_verify_cancel(NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
         display_verify_output();
         break;
     }
@@ -2599,7 +2716,12 @@ unsigned int btchip_bagl_confirm_full_output() {
 void display_whitelist_ui() {
     ux_step = 0;
     ux_step_count = 3;
-    UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
+    if(is_whitelist_full()) {
+        UX_DISPLAY(ui_whitelist_full_nanos, ui_verify_output_prepro);
+    }
+    else {
+        UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
+    }
 }
 
 void display_verify_output() {
