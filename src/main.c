@@ -2747,10 +2747,13 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    if(address_in_whitelist()) 
-        display_verify_output();
-    else 
+    if(N_storage.use_whitelist && !address_in_whitelist()) {
         display_whitelist_ui();
+    }
+    else {
+        display_verify_output();    
+    }
+
 // todo
 // #if defined(TARGET_BLUE)
 //     ui_transaction_output_blue_init();
