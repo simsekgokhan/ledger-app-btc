@@ -105,6 +105,7 @@ union {
         // of
 
         char fullAddress[43]; // the address
+        char addressToDelete[43]; // the address in whitelist to delete
         char fullAmount[20];  // full amount
         char feesAmount[20];  // fees
     } tmp;
@@ -261,10 +262,70 @@ unsigned int ui_idle_blue_button(unsigned int button_mask,
 volatile uint8_t use_whitelist;
 volatile uint8_t index_wl;  // index for whitelist settings
 
+const bagl_element_t ui_whitelist_confirm_delete_nanos[] = {
+    // type                               userid    x    y   w    h  str rad
+    // fill      fg        bg      fid iid  txt   touchparams...       ]
+    {{BAGL_RECTANGLE, 0x00, 0, 0, 128, 32, 0, 0, BAGL_FILL, 0x000000, 0xFFFFFF,
+      0, 0},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    {{BAGL_ICON, 0x00, 3, 12, 7, 7, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CROSS},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_ICON, 0x00, 117, 13, 8, 6, 0, 0, 0, 0xFFFFFF, 0x000000, 0,
+      BAGL_GLYPH_ICON_CHECK},
+     NULL,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+
+    //{{BAGL_ICON                           , 0x01,  21,   9,  14,  14, 0, 0, 0
+    //, 0xFFFFFF, 0x000000, 0, BAGL_GLYPH_ICON_TRANSACTION_BADGE  }, NULL, 0, 0,
+    //0, NULL, NULL, NULL },
+    {{BAGL_LABELINE, 0x01, 0, 12, 128, 12, 0, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_REGULAR_11px | BAGL_FONT_ALIGNMENT_CENTER, 0},
+     "Delete this address?",
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL},
+    {{BAGL_LABELINE, 0x01, 23, 26, 82, 12, 0x80 | 10, 0, 0, 0xFFFFFF, 0x000000,
+      BAGL_FONT_OPEN_SANS_EXTRABOLD_11px | BAGL_FONT_ALIGNMENT_CENTER, 26},
+     vars.tmp.addressToDelete,
+     0,
+     0,
+     0,
+     NULL,
+     NULL,
+     NULL}
+};
+
+unsigned int ui_whitelist_confirm_delete_nanos_button(unsigned int button_mask,
+                                                      unsigned int button_mask_counter);
+unsigned int ui_verify_output_prepro(const bagl_element_t *element);
+
 const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_settings[];
 const ux_menu_entry_t menu_settings_whitelist[];
 const ux_menu_entry_t menu_settings_edit_whitelist[];
+const bagl_element_t ui_whitelist_confirm_delete_nanos[];
 
 // change the setting
 void menu_settings_whitelist_change(unsigned int enabled) {
@@ -274,8 +335,7 @@ void menu_settings_whitelist_change(unsigned int enabled) {
   UX_MENU_DISPLAY(0, menu_settings, NULL);
 }
 
-void menu_settings_edit_whitelist_change(unsigned int index) {
-  index_wl = index;
+void delete_whitelist_entry() {
   // Change runtime whitelist
   memset(whitelist_runtime[index_wl], 0, sizeof(whitelist_runtime[index_wl]));
   strcpy(whitelist_runtime[index_wl], " . <unused>");
@@ -284,7 +344,19 @@ void menu_settings_edit_whitelist_change(unsigned int index) {
   const char unused[43] = "<unused>";  
   nvm_write(&N_storage.whitelist[index_wl], (void*)&unused, sizeof(unused));
   // go back to the menu entry
-  UX_MENU_DISPLAY(0, menu_settings, NULL);
+  UX_MENU_DISPLAY(1, menu_settings, NULL);
+}
+
+void menu_settings_edit_whitelist_delete(unsigned int index) {
+  index_wl = index;  
+  if(0 != strstr(whitelist_runtime[index_wl], "<unused>")) {
+    UX_MENU_DISPLAY(1, menu_settings, NULL);
+  }
+  else {
+    memset(vars.tmp.addressToDelete, 0, sizeof(vars.tmp.addressToDelete));
+    strcpy(vars.tmp.addressToDelete, N_storage.whitelist[index_wl]);
+    UX_DISPLAY(ui_whitelist_confirm_delete_nanos, ui_verify_output_prepro);
+  }
 }
 
 // show the currently activated entry
@@ -307,16 +379,16 @@ const ux_menu_entry_t menu_settings_whitelist[] = {
 
 const ux_menu_entry_t menu_settings_edit_whitelist[] = {
   {NULL, NULL, 0, NULL, "Use two buttons", "to delete entry", 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 0, NULL, whitelist_runtime[0], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 1, NULL, whitelist_runtime[1], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 2, NULL, whitelist_runtime[2], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 3, NULL, whitelist_runtime[3], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 4, NULL, whitelist_runtime[4], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 5, NULL, whitelist_runtime[5], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 6, NULL, whitelist_runtime[6], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 7, NULL, whitelist_runtime[7], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 8, NULL, whitelist_runtime[8], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_change, 9, NULL, whitelist_runtime[9], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 0, NULL, whitelist_runtime[0], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 1, NULL, whitelist_runtime[1], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 2, NULL, whitelist_runtime[2], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 3, NULL, whitelist_runtime[3], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 4, NULL, whitelist_runtime[4], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 5, NULL, whitelist_runtime[5], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 6, NULL, whitelist_runtime[6], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 7, NULL, whitelist_runtime[7], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 8, NULL, whitelist_runtime[8], NULL, 0, 0},
+  {NULL, menu_settings_edit_whitelist_delete, 9, NULL, whitelist_runtime[9], NULL, 0, 0},
   {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},  
   UX_MENU_END
 };
@@ -1696,7 +1768,7 @@ const bagl_element_t ui_whitelist_full_nanos[] = {
      NULL,
      NULL}};
 unsigned int ui_whitelist_full_nanos_button(unsigned int button_mask,
-                                           unsigned int button_mask_counter);
+                                            unsigned int button_mask_counter);
 
 const bagl_element_t ui_finalize_nanos[] = {
     // type                               userid    x    y   w    h  str rad
@@ -2119,7 +2191,7 @@ unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
 }
 
 unsigned int ui_whitelist_full_nanos_button(unsigned int button_mask,
-                                               unsigned int button_mask_counter) {
+                                            unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
         io_seproxyhal_touch_verify_cancel(NULL);
@@ -2127,6 +2199,20 @@ unsigned int ui_whitelist_full_nanos_button(unsigned int button_mask,
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
         display_verify_output();
+        break;
+    }
+    return 0;
+}
+
+unsigned int ui_whitelist_confirm_delete_nanos_button(unsigned int button_mask,
+                                                      unsigned int button_mask_counter) {
+    switch (button_mask) {
+    case BUTTON_EVT_RELEASED | BUTTON_LEFT:
+        UX_MENU_DISPLAY(1, menu_settings, NULL);
+        break;
+
+    case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
+        delete_whitelist_entry();
         break;
     }
     return 0;
