@@ -47,11 +47,13 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 typedef struct internalStorage_t {
     unsigned char use_whitelist;
-    char whitelist[10][43]; // Whitelist of Bitcoing recepient addresses in storage
+    // Whitelist of Bitcoin recepient addresses in storage
+    char whitelist[10][43]; 
 } internalStorage_t;
 
-// Whitelist of Bitcoing recepient addresses to use at runtime
-char whitelist_runtime[10][43]; // contains index, e.g. 1. 38ut**xgNG
+// List of Bitcoin recepient addresses with list indexes to use at runtime 
+// in whitelist menu 
+char whitelist_runtime[10][43]; // e.g. 1. 38uz**xgNG, 2. <unused>
 
 WIDE internalStorage_t N_storage_real;
 #define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
@@ -335,16 +337,53 @@ void menu_settings_whitelist_change(unsigned int enabled) {
   UX_MENU_DISPLAY(0, menu_settings, NULL);
 }
 
-void delete_whitelist_entry() {
-  // Change runtime whitelist
-  memset(whitelist_runtime[index_wl], 0, sizeof(whitelist_runtime[index_wl]));
-  strcpy(whitelist_runtime[index_wl], " . <unused>");
-  whitelist_runtime[index_wl][0] = index_wl + 49;
-  // Change whitelist in storage
+void re_arrange_whitelist();
+void build_whitelist_in_menu();
+
+void delete_whitelist_entry() {  
   const char unused[43] = "<unused>";  
   nvm_write(&N_storage.whitelist[index_wl], (void*)&unused, sizeof(unused));
+  re_arrange_whitelist();
+  build_whitelist_in_menu();
   // go back to the menu entry
   UX_MENU_DISPLAY(1, menu_settings, NULL);
+}
+
+// Keep addresses at the top of the list and unused entries at the bottom
+void re_arrange_whitelist() {
+    const char unused[43] = "<unused>";
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    int k = 0;
+    for (int i = 0; i < wl_size; i++) {
+        // If entry is an address 
+        if(0 != N_storage.whitelist[i][0] && 0 != strcmp(N_storage.whitelist[i], unused)) {
+            if(i > k) {            
+                // Swap address and unused entry
+                nvm_write(&N_storage.whitelist[k], (void*)&N_storage.whitelist[i], 
+                          sizeof(N_storage.whitelist[i]));
+                nvm_write(&N_storage.whitelist[i], (void*)&unused, sizeof(unused));                
+            }
+            ++k;
+        }
+    }
+}
+
+void build_whitelist_in_menu() {
+    const char unused[43] = "<unused>";
+    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
+    for (int i = 0; i < wl_size; i++) {
+        memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
+        snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
+        strcat(whitelist_runtime[i], ". ");
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], unused)) {
+            strcat(whitelist_runtime[i], unused);
+        }
+        else {
+            strncat(whitelist_runtime[i], N_storage.whitelist[i], 4);
+            strcat(whitelist_runtime[i], "**");
+            strncat(whitelist_runtime[i], N_storage.whitelist[i]+30, 4);          
+        }        
+    }
 }
 
 void menu_settings_edit_whitelist_delete(unsigned int index) {
