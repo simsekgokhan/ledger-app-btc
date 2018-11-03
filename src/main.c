@@ -327,7 +327,6 @@ const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_settings[];
 const ux_menu_entry_t menu_settings_whitelist[];
 const ux_menu_entry_t menu_settings_edit_whitelist[];
-const bagl_element_t ui_whitelist_confirm_delete_nanos[];
 
 // change the setting
 void menu_settings_whitelist_change(unsigned int enabled) {
@@ -394,6 +393,8 @@ void menu_settings_edit_whitelist_delete(unsigned int index) {
   else {
     memset(vars.tmp.addressToDelete, 0, sizeof(vars.tmp.addressToDelete));
     strcpy(vars.tmp.addressToDelete, N_storage.whitelist[index_wl]);
+    ux_step = 0;
+    ux_step_count = 1;
     UX_DISPLAY(ui_whitelist_confirm_delete_nanos, ui_verify_output_prepro);
   }
 }
