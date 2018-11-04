@@ -365,12 +365,17 @@ void re_arrange_whitelist() {
     }
 }
 
+bool whitelist_entry_unused(unsigned int index) {
+    return (0 == N_storage.whitelist[index][0] || 
+            0 == strcmp(N_storage.whitelist[index], UNUSED_STR));
+}
+
 void build_whitelist_in_menu() {
     for (int i = 0; i < WHITELIST_SIZE; i++) {
         memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
         snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
         strcat(whitelist_runtime[i], ". ");
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR)) {
+        if(whitelist_entry_unused(i)) {
             strcat(whitelist_runtime[i], UNUSED_STR);
         }
         else {
@@ -2164,7 +2169,7 @@ bool is_address_in_whitelist() {
 
 void save_addr_into_whitelist(){
     for (int i = 0; i < WHITELIST_SIZE; i++) {
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR)) {
+        if(whitelist_entry_unused(i)) {
             // Change list in storage
             nvm_write(&N_storage.whitelist[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));
             // Change runtime list
@@ -2181,7 +2186,7 @@ void save_addr_into_whitelist(){
 
 bool is_whitelist_full() {
     for (int i = 0; i < WHITELIST_SIZE; i++) {        
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR))
+        if(whitelist_entry_unused(i))
             return false;
     }
     return true;
