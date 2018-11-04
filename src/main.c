@@ -103,11 +103,10 @@ union {
     struct {
         // char addressSummary[40]; // beginning of the output address ... end
         // of
-
-        char fullAddress[43]; // the address
-        char addressToDelete[43]; // the address in whitelist to delete
-        char fullAmount[20];  // full amount
-        char feesAmount[20];  // fees
+        char fullAddress[43];       // the address
+        char addressToDelete[43];   // the address in whitelist to delete
+        char fullAmount[20];        // full amount
+        char feesAmount[20];        // fees
     } tmp;
 
     /*
@@ -259,7 +258,7 @@ unsigned int ui_idle_blue_button(unsigned int button_mask,
 #if defined(TARGET_NANOS)
 
 volatile uint8_t use_whitelist;
-volatile uint8_t index_wl;  // index for whitelist settings
+volatile uint8_t index_wl;  // index of whitelisted address to delete
 
 const bagl_element_t ui_whitelist_confirm_delete_nanos[] = {
     // type                               userid    x    y   w    h  str rad
@@ -321,16 +320,16 @@ unsigned int ui_whitelist_confirm_delete_nanos_button(unsigned int button_mask,
 unsigned int ui_verify_output_prepro(const bagl_element_t *element);
 
 const ux_menu_entry_t menu_main[];
-const ux_menu_entry_t menu_settings[];
-const ux_menu_entry_t menu_settings_whitelist[];
-const ux_menu_entry_t menu_settings_edit_whitelist[];
+const ux_menu_entry_t menu_whitelist[];
+const ux_menu_entry_t menu_whitelist_use_whitelist[];
+const ux_menu_entry_t menu_whitelist_edit_whitelist[];
 
-// change the setting
-void menu_settings_whitelist_change(unsigned int enabled) {
+// Change use whitelist setting
+void menu_whitelist_use_whitelist_change(unsigned int enabled) {
   use_whitelist = enabled;
   nvm_write(&N_storage.use_whitelist, (void*)&use_whitelist, sizeof(uint8_t));
   // go back to the menu entry
-  UX_MENU_DISPLAY(0, menu_settings, NULL);
+  UX_MENU_DISPLAY(0, menu_whitelist, NULL);
 }
 
 void re_arrange_whitelist();
@@ -342,10 +341,10 @@ void delete_whitelist_entry() {
   re_arrange_whitelist();
   build_whitelist_in_menu();
   // go back to the menu entry
-  UX_MENU_DISPLAY(1, menu_settings, NULL);
+  UX_MENU_DISPLAY(1, menu_whitelist, NULL);
 }
 
-// Keep addresses at the top of the list and unused entries at the bottom
+// Keep address entries at the top of the list and unused entries at the bottom
 void re_arrange_whitelist() {
     const char unused[43] = "<unused>";
     const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
@@ -382,10 +381,10 @@ void build_whitelist_in_menu() {
     }
 }
 
-void menu_settings_edit_whitelist_delete(unsigned int index) {
+void menu_whitelist_edit_whitelist_delete(unsigned int index) {
   index_wl = index;  
   if(0 != strstr(whitelist_runtime[index_wl], "<unused>")) {
-    UX_MENU_DISPLAY(1, menu_settings, NULL);
+    UX_MENU_DISPLAY(1, menu_whitelist, NULL);
   }
   else {
     memset(vars.tmp.addressToDelete, 0, sizeof(vars.tmp.addressToDelete));
@@ -396,43 +395,42 @@ void menu_settings_edit_whitelist_delete(unsigned int index) {
   }
 }
 
-// show the currently activated entry
-void menu_settings_whitelist_init(unsigned int ignored) {
+void menu_whitelist_use_whitelist_init(unsigned int ignored) {
   UNUSED(ignored);
-  UX_MENU_DISPLAY(N_storage.use_whitelist?1:0, menu_settings_whitelist, NULL);
+  UX_MENU_DISPLAY(N_storage.use_whitelist?1:0, menu_whitelist_use_whitelist, NULL);
 }
 
-void menu_settings_edit_whitelist_init(unsigned int ignored) {
+void menu_whitelist_edit_whitelist_init(unsigned int ignored) {
   UNUSED(ignored);
-  UX_MENU_DISPLAY(0, menu_settings_edit_whitelist, NULL);
+  UX_MENU_DISPLAY(0, menu_whitelist_edit_whitelist, NULL);
 }
 
-const ux_menu_entry_t menu_settings_whitelist[] = {
-  {NULL, menu_settings_whitelist_change, 0, NULL, "No", NULL, 0, 0},
-  {NULL, menu_settings_whitelist_change, 1, NULL, "Yes", NULL, 0, 0},
-  {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},    
+const ux_menu_entry_t menu_whitelist_use_whitelist[] = {
+  {NULL, menu_whitelist_use_whitelist_change, 0, NULL, "No", NULL, 0, 0},
+  {NULL, menu_whitelist_use_whitelist_change, 1, NULL, "Yes", NULL, 0, 0},
+  {menu_whitelist, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},    
   UX_MENU_END
 };
 
-const ux_menu_entry_t menu_settings_edit_whitelist[] = {
+const ux_menu_entry_t menu_whitelist_edit_whitelist[] = {
   {NULL, NULL, 0, NULL, "Use two buttons", "to delete entry", 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 0, NULL, whitelist_runtime[0], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 1, NULL, whitelist_runtime[1], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 2, NULL, whitelist_runtime[2], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 3, NULL, whitelist_runtime[3], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 4, NULL, whitelist_runtime[4], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 5, NULL, whitelist_runtime[5], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 6, NULL, whitelist_runtime[6], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 7, NULL, whitelist_runtime[7], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 8, NULL, whitelist_runtime[8], NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_delete, 9, NULL, whitelist_runtime[9], NULL, 0, 0},
-  {menu_settings, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},  
+  {NULL, menu_whitelist_edit_whitelist_delete, 0, NULL, whitelist_runtime[0], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 1, NULL, whitelist_runtime[1], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 2, NULL, whitelist_runtime[2], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 3, NULL, whitelist_runtime[3], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 4, NULL, whitelist_runtime[4], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 5, NULL, whitelist_runtime[5], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 6, NULL, whitelist_runtime[6], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 7, NULL, whitelist_runtime[7], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 8, NULL, whitelist_runtime[8], NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_delete, 9, NULL, whitelist_runtime[9], NULL, 0, 0},
+  {menu_whitelist, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},  
   UX_MENU_END
 };
 
-const ux_menu_entry_t menu_settings[] = {
-  {NULL, menu_settings_whitelist_init, 0, NULL, "Use whitelist", NULL, 0, 0},
-  {NULL, menu_settings_edit_whitelist_init, 0, NULL, "Edit whitelist", NULL, 0, 0},
+const ux_menu_entry_t menu_whitelist[] = {
+  {NULL, menu_whitelist_use_whitelist_init, 0, NULL, "Use whitelist", NULL, 0, 0},
+  {NULL, menu_whitelist_edit_whitelist_init, 0, NULL, "Edit whitelist", NULL, 0, 0},
   {menu_main, NULL, 1, &C_nanos_icon_back, "Back", NULL, 61, 40},
   UX_MENU_END
 };
@@ -446,7 +444,7 @@ const ux_menu_entry_t menu_main[] = {
     //{NULL, NULL, 0, &NAME3(C_nanos_badge_, COINID, ), "Use wallet to", "view
     // accounts", 33, 12},
     {NULL, NULL, 0, NULL, "Use wallet to", "view accounts", 0, 0},
-    {menu_settings, NULL, 0, NULL, "Settings", NULL, 0, 0},
+    {menu_whitelist, NULL, 0, NULL, "Whitelist", NULL, 0, 0},
     {menu_about, NULL, 0, NULL, "About", NULL, 0, 0},
     {NULL, os_sched_exit, 0, &C_nanos_icon_dashboard, "Quit app", NULL, 50, 29},
     UX_MENU_END};
@@ -2226,7 +2224,7 @@ unsigned int ui_whitelist_confirm_delete_nanos_button(unsigned int button_mask,
                                                       unsigned int button_mask_counter) {
     switch (button_mask) {
     case BUTTON_EVT_RELEASED | BUTTON_LEFT:
-        UX_MENU_DISPLAY(1, menu_settings, NULL);
+        UX_MENU_DISPLAY(1, menu_whitelist, NULL);
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
