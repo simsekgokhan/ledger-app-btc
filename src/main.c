@@ -53,8 +53,13 @@ typedef struct internalStorage_t {
 // List of Bitcoin recepient addresses with indexes to use in whitelist menu 
 char whitelist_runtime[10][43]; // e.g. 1. 38uz**xgNG, 2. <unused>
 
+// Text for unused entry in whitelist
+const char UNUSED_STR[43] = "<unused>";
+
 WIDE internalStorage_t N_storage_real;
 #define N_storage (*(WIDE internalStorage_t*) PIC(&N_storage_real)) 
+
+const int WHITELIST_SIZE = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
 
 #if defined(TARGET_BLUE)
 #include "qrcodegen.h"
@@ -336,8 +341,7 @@ void re_arrange_whitelist();
 void build_whitelist_in_menu();
 
 void delete_whitelist_entry() {  
-  const char unused[43] = "<unused>";  
-  nvm_write(&N_storage.whitelist[index_wl], (void*)&unused, sizeof(unused));
+  nvm_write(&N_storage.whitelist[index_wl], (void*)&UNUSED_STR, sizeof(UNUSED_STR));
   re_arrange_whitelist();
   build_whitelist_in_menu();
   // go back to the menu entry
@@ -346,17 +350,15 @@ void delete_whitelist_entry() {
 
 // Keep address entries at the top of the list and unused entries at the bottom
 void re_arrange_whitelist() {
-    const char unused[43] = "<unused>";
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
     int k = 0;
-    for (int i = 0; i < wl_size; i++) {
+    for (int i = 0; i < WHITELIST_SIZE; i++) {
         // If entry is an address 
-        if(0 != N_storage.whitelist[i][0] && 0 != strcmp(N_storage.whitelist[i], unused)) {
+        if(0 != N_storage.whitelist[i][0] && 0 != strcmp(N_storage.whitelist[i], UNUSED_STR)) {
             if(i > k) {            
                 // Swap address and unused entry
                 nvm_write(&N_storage.whitelist[k], (void*)&N_storage.whitelist[i], 
                           sizeof(N_storage.whitelist[i]));
-                nvm_write(&N_storage.whitelist[i], (void*)&unused, sizeof(unused));                
+                nvm_write(&N_storage.whitelist[i], (void*)&UNUSED_STR, sizeof(UNUSED_STR));                
             }
             ++k;
         }
@@ -364,14 +366,12 @@ void re_arrange_whitelist() {
 }
 
 void build_whitelist_in_menu() {
-    const char unused[43] = "<unused>";
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
-    for (int i = 0; i < wl_size; i++) {
+    for (int i = 0; i < WHITELIST_SIZE; i++) {
         memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
         snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
         strcat(whitelist_runtime[i], ". ");
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], unused)) {
-            strcat(whitelist_runtime[i], unused);
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR)) {
+            strcat(whitelist_runtime[i], UNUSED_STR);
         }
         else {
             strncat(whitelist_runtime[i], N_storage.whitelist[i], 4);
@@ -383,7 +383,7 @@ void build_whitelist_in_menu() {
 
 void menu_whitelist_edit_whitelist_delete(unsigned int index) {
   index_wl = index;  
-  if(0 != strstr(whitelist_runtime[index_wl], "<unused>")) {
+  if(0 != strstr(whitelist_runtime[index_wl], UNUSED_STR)) {
     UX_MENU_DISPLAY(1, menu_whitelist, NULL);
   }
   else {
@@ -397,7 +397,7 @@ void menu_whitelist_edit_whitelist_delete(unsigned int index) {
 
 void menu_whitelist_use_whitelist_init(unsigned int ignored) {
   UNUSED(ignored);
-  UX_MENU_DISPLAY(N_storage.use_whitelist?1:0, menu_whitelist_use_whitelist, NULL);
+  UX_MENU_DISPLAY(N_storage.use_whitelist ? 1:0, menu_whitelist_use_whitelist, NULL);
 }
 
 void menu_whitelist_edit_whitelist_init(unsigned int ignored) {
@@ -1709,7 +1709,7 @@ const bagl_element_t ui_whitelist_nanos[] = {
      NULL,
      NULL}};
 unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
-                                           unsigned int button_mask_counter);
+                                       unsigned int button_mask_counter);
 
 const bagl_element_t ui_whitelist_full_nanos[] = {
     // type                               userid    x    y   w    h  str rad
@@ -2154,9 +2154,8 @@ unsigned int ui_verify_output_nanos_button(unsigned int button_mask,
 
 void display_verify_output();
 
-bool address_in_whitelist() {
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
-    for (int i = 0; i < wl_size; i++) {        
+bool is_address_in_whitelist() {
+    for (int i = 0; i < WHITELIST_SIZE; i++) {        
         if(0 == strcmp(N_storage.whitelist[i], vars.tmp.fullAddress)) 
             return true;
     }
@@ -2164,9 +2163,8 @@ bool address_in_whitelist() {
 }
 
 void save_addr_into_whitelist(){
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
-    for (int i = 0; i < wl_size; i++) {
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], "<unused>")) {
+    for (int i = 0; i < WHITELIST_SIZE; i++) {
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR)) {
             // Change list in storage
             nvm_write(&N_storage.whitelist[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));
             // Change runtime list
@@ -2182,9 +2180,8 @@ void save_addr_into_whitelist(){
 }
 
 bool is_whitelist_full() {
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
-    for (int i = 0; i < wl_size; i++) {        
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], "<unused>"))
+    for (int i = 0; i < WHITELIST_SIZE; i++) {        
+        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], UNUSED_STR))
             return false;
     }
     return true;
@@ -2198,8 +2195,9 @@ unsigned int ui_whitelist_nanos_button(unsigned int button_mask,
         break;
 
     case BUTTON_EVT_RELEASED | BUTTON_RIGHT:
-        if(!address_in_whitelist())
+        if(!is_address_in_whitelist())
             save_addr_into_whitelist();
+
         display_verify_output();
         break;
     }
@@ -2852,7 +2850,7 @@ unsigned int btchip_bagl_confirm_single_output() {
 #if defined(TARGET_BLUE)
     ui_transaction_output_blue_init();
 #elif defined(TARGET_NANOS)
-    if(N_storage.use_whitelist && !address_in_whitelist())
+    if(N_storage.use_whitelist && !is_address_in_whitelist())
         display_whitelist_ui();
     else
         display_verify_output();    
