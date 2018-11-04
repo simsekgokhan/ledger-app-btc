@@ -47,12 +47,10 @@ unsigned char G_io_seproxyhal_spi_buffer[IO_SEPROXYHAL_BUFFER_SIZE_B];
 
 typedef struct internalStorage_t {
     unsigned char use_whitelist;
-    // Whitelist of Bitcoin recepient addresses in storage
-    char whitelist[10][43]; 
+    char whitelist[10][43]; // whitelist of Bitcoin recepient addresses
 } internalStorage_t;
 
-// List of Bitcoin recepient addresses with list indexes to use at runtime 
-// in whitelist menu 
+// List of Bitcoin recepient addresses with indexes to use in whitelist menu 
 char whitelist_runtime[10][43]; // e.g. 1. 38uz**xgNG, 2. <unused>
 
 WIDE internalStorage_t N_storage_real;
@@ -135,7 +133,6 @@ unsigned int io_seproxyhal_touch_display_cancel(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_display_ok(const bagl_element_t *e);
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e);
 void ui_idle(void);
-void init_whitelist();
 
 ux_state_t ux;
 
@@ -2067,24 +2064,6 @@ void ui_idle(void) {
 #endif // #if TARGET_ID
 }
 
-void init_whitelist() {
-    const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
-    for (int i = 0; i < wl_size; i++) {
-        memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
-        const char unused[] = "<unused>";
-        snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
-        strcat(whitelist_runtime[i], ". ");
-        if(0 == N_storage.whitelist[i][0] || 0 == strcmp(N_storage.whitelist[i], unused)) {
-            strcat(whitelist_runtime[i], unused);
-        }
-        else {
-            strncat(whitelist_runtime[i], N_storage.whitelist[i], 4);
-            strcat(whitelist_runtime[i], "**");
-            strncat(whitelist_runtime[i], N_storage.whitelist[i]+30, 4);            
-        }
-    }
-}
-
 #ifdef TARGET_BLUE
 
 unsigned int io_seproxyhal_touch_exit(const bagl_element_t *e) {
@@ -2186,7 +2165,6 @@ bool address_in_whitelist() {
     return false;
 }
 
-// todo: return false if no space left
 void save_addr_into_whitelist(){
     const int wl_size = sizeof(N_storage.whitelist)/sizeof(N_storage.whitelist[0]);
     for (int i = 0; i < wl_size; i++) {
@@ -2873,22 +2851,14 @@ unsigned int btchip_bagl_confirm_single_output() {
              btchip_context_D.totalOutputs - btchip_context_D.remainingOutputs +
                  1);
 
-    if(N_storage.use_whitelist && !address_in_whitelist()) {
+#if defined(TARGET_BLUE)
+    ui_transaction_output_blue_init();
+#elif defined(TARGET_NANOS)
+    if(N_storage.use_whitelist && !address_in_whitelist())
         display_whitelist_ui();
-    }
-    else {
+    else
         display_verify_output();    
-    }
-
-// todo
-// #if defined(TARGET_BLUE)
-//     ui_transaction_output_blue_init();
-// #elif defined(TARGET_NANOS)
-//     ux_step = 0;
-//     ux_step_count = 3;
-//     //UX_DISPLAY(ui_verify_output_nanos, ui_verify_output_prepro);
-//     UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
-// #endif // #if TARGET_ID
+#endif // #if TARGET_ID
     return 1;
 }
 
@@ -3092,7 +3062,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
                 UX_SET_STATUS_BAR_COLOR(0xFFFFFF, G_coin_config->color_header);
 #endif // TARGET_ID
 
-                init_whitelist();
+                build_whitelist_in_menu();
                 ui_idle();
 
                 app_main();
