@@ -322,7 +322,7 @@ const bagl_element_t ui_whitelist_confirm_delete_nanos[] = {
 
 unsigned int ui_whitelist_confirm_delete_nanos_button(unsigned int button_mask,
                                                       unsigned int button_mask_counter);
-unsigned int ui_verify_output_prepro(const bagl_element_t *element);
+unsigned int ui_whitelist_prepro(const bagl_element_t *element);
 
 const ux_menu_entry_t menu_main[];
 const ux_menu_entry_t menu_whitelist[];
@@ -396,7 +396,7 @@ void menu_whitelist_edit_whitelist_delete(unsigned int index) {
     strcpy(vars.tmp.addressToDelete, N_storage.whitelist[index_wl]);
     ux_step = 0;
     ux_step_count = 1;
-    UX_DISPLAY(ui_whitelist_confirm_delete_nanos, ui_verify_output_prepro);
+    UX_DISPLAY(ui_whitelist_confirm_delete_nanos, ui_whitelist_prepro);
   }
 }
 
@@ -1897,6 +1897,26 @@ const bagl_element_t ui_finalize_nanos[] = {
 unsigned int ui_finalize_nanos_button(unsigned int button_mask,
                                       unsigned int button_mask_counter);
 
+unsigned int ui_whitelist_prepro(const bagl_element_t *element) {
+    if (element->component.userid > 0) {
+        unsigned int display = (ux_step == element->component.userid - 1);
+        if (display) {
+            switch (element->component.userid) {
+            case 1:
+                UX_CALLBACK_SET_INTERVAL(2000);
+                break;
+            case 2:
+            case 3:
+                UX_CALLBACK_SET_INTERVAL(MAX(
+                    3000, 1000 + bagl_label_roundtrip_duration_ms(element, 7)));
+                break;
+            }
+        }
+        return display;
+    }
+    return 1;
+}
+
 // display or not according to step, and adjust delay
 unsigned int ui_verify_prepro(const bagl_element_t *element) {
     if (element->component.userid > 0) {
@@ -2170,9 +2190,9 @@ bool is_address_in_whitelist() {
 void save_addr_into_whitelist(){
     for (int i = 0; i < WHITELIST_SIZE; i++) {
         if(whitelist_entry_unused(i)) {
-            // Change list in storage
+            // Modify list in storage
             nvm_write(&N_storage.whitelist[i], (void*)&vars.tmp.fullAddress, sizeof(vars.tmp.fullAddress));
-            // Change runtime list
+            // Modify list in menu
             memset(whitelist_runtime[i], 0, sizeof(whitelist_runtime[i]));
             snprintf(whitelist_runtime[i], sizeof(whitelist_runtime[i]), "%d", i+1);
             strcat(whitelist_runtime[i], ". ");
@@ -2822,10 +2842,10 @@ void display_whitelist_ui() {
     ux_step = 0;
     ux_step_count = 3;
     if(is_whitelist_full()) {
-        UX_DISPLAY(ui_whitelist_full_nanos, ui_verify_output_prepro);
+        UX_DISPLAY(ui_whitelist_full_nanos, ui_whitelist_prepro);
     }
     else {
-        UX_DISPLAY(ui_whitelist_nanos, ui_verify_output_prepro);
+        UX_DISPLAY(ui_whitelist_nanos, ui_whitelist_prepro);
     }
 }
 
